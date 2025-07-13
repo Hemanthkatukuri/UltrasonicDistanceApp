@@ -1,76 +1,132 @@
-# 🚘 Ultrasonic Distance Monitoring with MQTT
+# Ultrasonic Distance Monitor
 
-This project simulates a **Forward Collision Avoidance System (FCAS)** using an **ultrasonic sensor**, **CC3200 LaunchPad**, and a **Java-based Android application**. It uses the **MQTT protocol** to wirelessly transmit sensor readings to the app in real-time.
+An Android application that monitors ultrasonic distance sensor data via MQTT and provides real-time distance classification with visual and haptic alerts.
 
----
+## Features
 
-## 🧰 Hardware Used
+### 🎯 Core Functionality
+- **Real-time Distance Monitoring**: Displays distance values from ultrasonic sensor in centimeters
+- **Distance Classification**: Automatically classifies distances into safety zones:
+  - ✅ **Safe**: ≥50 cm (Green)
+  - ⚠️ **Be Alert**: 25-49.9 cm (Yellow) 
+  - 🚨 **Danger**: <25 cm (Red)
 
-- **TI CC3200 LaunchPad** – WiFi-enabled microcontroller
-- **Grove Ultrasonic Ranger v2.0** – For distance measurement
-- **Grove BoosterPack** – For connecting Grove modules
-- **Buzzer + Red LED (D7 onboard)** – Simulates emergency alerts
+### 🔔 Alert System
+- **Visual Indicators**: Color-coded status display with icons
+- **Haptic Feedback**: Vibration alerts when in danger zone
+- **Real-time Updates**: Instant UI updates as distance changes
 
----
-
-## 📲 Android App (Java)
-
-A lightweight mobile application built using **Java in Android Studio** that subscribes to MQTT topics and displays the distance in real time with visual status indicators.
-
-### ✅ Features:
-- Connects to HiveMQ broker using MQTT
-- Displays live distance data in centimeters
-- Color-coded safety levels with animated indicators:
-  - 🟢 **SAFE**: ≥ 50 cm
-  - 🟠 **BE ALERT**: 25–49 cm
-  - 🔴 **DANGER**: 10–24 cm
-  - 🚨 **CRITICAL**: < 10 cm (buzzer ON)
-
-### 📡 MQTT Configuration:
-- **Broker**: `broker.hivemq.com`
-- **Port**: `1883`
+### 📡 MQTT Integration
+- **Broker**: HiveMQ (tcp://broker.hivemq.com:1883)
 - **Topic**: `ultrasonic/distance`
+- **Message Format**: Simple numeric values (e.g., "25.5", "50", "10")
 
-### 🖼 Sample UI Indicators:
-| Distance Range | Status     | UI Indicator |
-|----------------|------------|--------------|
-| ≥ 50 cm        | SAFE       | Green LED    |
-| 25–49 cm       | BE ALERT   | Orange LED   |
-| 10–24 cm       | DANGER     | Red LED      |
-| < 10 cm        | CRITICAL   | Buzzer ON    |
+### 🧪 Testing Features
+- **Built-in Simulator**: Test the app without an actual sensor
+- **Distance Slider**: Adjust simulated distance values (0-100 cm)
+- **Real-time Publishing**: Send test data to the same MQTT topic
 
----
+## Setup Instructions
 
-## 🔌 Energia Firmware (CC3200)
+### 1. Build and Install
+```bash
+# Build the app
+./gradlew assembleDebug
 
-The CC3200 continuously measures the distance using the ultrasonic sensor and publishes the result to an MQTT topic.
+# Install on device
+adb install app/build/outputs/apk/debug/app-debug.apk
+```
 
-### 🔄 Sensor → MQTT Broker Flow:
-1. Trigger ultrasonic pulse and read echo
-2. Calculate distance in cm
-3. Activate LED or buzzer based on thresholds
-4. Publish distance to topic `ultrasonic/distance`
+### 2. Configure Your Ultrasonic Sensor
+Your sensor should publish distance data to the MQTT topic `ultrasonic/distance` with:
+- **Broker**: `tcp://broker.hivemq.com:1883`
+- **Topic**: `ultrasonic/distance`
+- **Message Format**: Numeric distance in centimeters (e.g., "25.5")
 
-### 🧪 Sample Payload:
-  Distance: 22
+### 3. Testing Without Sensor
+1. Launch the app
+2. Tap "Test Simulator" button
+3. Adjust the distance slider
+4. Tap "Publish Distance" to send test data
+5. Return to main screen to see real-time updates
 
-### 📦 Libraries Used:
-- `WiFi.h`
-- `MQTTClient.h`
-- `Ultrasonic.h`
+## Technical Details
 
----
+### Distance Classification Logic
+```java
+if (distance >= 50.0) {
+    return SAFE;      // Green indicator
+} else if (distance >= 25.0) {
+    return ALERT;     // Yellow indicator  
+} else {
+    return DANGER;    // Red indicator + vibration
+}
+```
 
-## 💡 Future Enhancements
-- Multi-sensor support (for front, rear, and side)
-- Data logging and chart visualization
-- Real motor control simulation
-- Firebase or cloud integration for analytics
+### MQTT Configuration
+- **Client ID**: `Ultrasonic_MobileApp`
+- **Broker**: HiveMQ public broker
+- **QoS**: Default (0)
+- **Clean Session**: true
 
----
+### Permissions
+- `INTERNET`: For MQTT communication
+- `VIBRATE`: For haptic alerts
 
-## 👨‍💻 Developed By
+## Customization
 
-**Hemanth Katukuri**    
-- CC3200, MQTT, Java, Energia  
+### Distance Thresholds
+Modify the constants in `MainActivity.java`:
+```java
+private static final double SAFE_DISTANCE = 50.0;    // cm
+private static final double ALERT_DISTANCE = 25.0;   // cm
+private static final double DANGER_DISTANCE = 5.0;   // cm
+```
+
+### MQTT Topic
+Change the topic in `MainActivity.java`:
+```java
+private static final String DISTANCE_TOPIC = "ultrasonic/distance";
+```
+
+### Vibration Pattern
+Modify the vibration alert in `MainActivity.java`:
+```java
+long[] pattern = {0, 500, 200, 500}; // wait, vibrate, wait, vibrate
+```
+
+## Troubleshooting
+
+### Connection Issues
+- Ensure internet connectivity
+- Check if HiveMQ broker is accessible
+- Verify MQTT topic name matches your sensor
+
+### No Distance Updates
+- Verify sensor is publishing to correct topic
+- Check message format (should be numeric)
+- Ensure app has internet permission
+
+### Vibration Not Working
+- Check device vibration settings
+- Ensure app has VIBRATE permission
+- Test on physical device (emulator may not vibrate)
+
+## Architecture
+
+```
+MainActivity (UI + MQTT Client)
+    ↓
+MqttHandler (MQTT Communication)
+    ↓
+HiveMQ Broker
+    ↑
+Ultrasonic Sensor (Your Hardware)
+```
+
+## Dependencies
+
+- **Eclipse Paho MQTT**: For MQTT client functionality
+- **AndroidX**: For modern Android components
+- **ConstraintLayout**: For responsive UI design
 
